@@ -1,10 +1,9 @@
 import { NextPage } from 'next';
 import { useEffect, useState } from 'react';
 import { Task, NewTask } from '../utilities/types';
-import TaskListItem from '../components/TaskListItem';
 import TaskChart from '../components/TaskChart';
 import TimerControls from '../components/TimerControls';
-import AddTask from '../components/AddTask';
+import TaskList from '../components/TaskList';
 
 const TimerPage: NextPage = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -30,49 +29,64 @@ const TimerPage: NextPage = () => {
   };
 
   const [working, setWorking] = useState<boolean>(false);
-  const [mainTimer, setMainTimer] = useState<number>(0);
-  const [activeTimer, setActiveTimer] = useState<number>(0);
+  const [workTimer, setWorkTimer] = useState<number>(0);
+
+  const [breaking, setBreaking] = useState<boolean>(false);
+  const [breakTimer, setBreakTimer] = useState<number>(0);
+
   const [activeTask, setActiveTask] = useState<Task>();
 
   useEffect(() => {
     if (working) {
       const count = setInterval(() => {
-        setMainTimer(mainTimer + 1);
+        setWorkTimer(workTimer + 1);
 
-        let tempTasks = tasks;
-        let index = 0;
-        if (activeTask) index = tempTasks.indexOf(activeTask);
-        tempTasks[index].time += 1;
-        setTasks([...tempTasks]);
+        if (activeTask) {
+          let tempTasks = tasks;
+          let index = 0;
+          index = tempTasks.indexOf(activeTask);
+          tempTasks[index].time += 1;
+          setTasks([...tempTasks]);
+        }
       }, 1000);
       return () => clearInterval(count);
     }
-  }, [working, mainTimer]);
+    if (breaking) {
+      const count = setInterval(() => {
+        setBreakTimer(breakTimer + 1);
+      }, 1000);
+      return () => clearInterval(count);
+    }
+  }, [working, workTimer, breaking, breakTimer]);
 
   return (
     <div id="timer">
-      <h1>My Tasks</h1>
-      <ol>
-        {Object.values(tasks).map((task) => {
-          return (
-            <TaskListItem
-              key={task.name}
-              name={task.name}
-              color={task.color}
-              time={task.time}
-              onClick={() => setActiveTask(task)}
-            />
-          );
-        })}
-      </ol>
-      <AddTask task={newTask} handleChange={handleChange} add={addTask} />
+      <h1>Time Tracker</h1>
       <TimerControls
-        start={() => setWorking(true)}
-        stop={() => setWorking(false)}
-        mainTimer={mainTimer}
+        startWork={() => {
+          setBreaking(false);
+          setWorking(true);
+        }}
+        startBreak={() => {
+          setWorking(false);
+          setBreaking(true);
+        }}
+        stop={() => {
+          setWorking(false);
+          setBreaking(false);
+        }}
+        workTimer={workTimer}
+        breakTimer={breakTimer}
         task={activeTask}
       />
-      <TaskChart tasks={tasks} mainTimer={mainTimer} />
+      <TaskList
+        tasks={tasks}
+        task={newTask}
+        handleChange={handleChange}
+        add={addTask}
+        setActive={(task: Task) => setActiveTask(task)}
+      />
+      <TaskChart tasks={tasks} mainTimer={workTimer} />
     </div>
   );
 };
